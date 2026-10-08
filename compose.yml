@@ -1,18 +1,23 @@
+# Pin the project name. Without this, Compose derives it from the directory
+# name, so cloning this repo as e.g. jhcsc_project_backend_prod on the server
+# would collide with the existing containers/volumes (both would try to own
+# <project>-web-1, <project>_pg-data, ...).
+name: bug-tracker-glitchtip
+
 x-environment: &default-environment
-  DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
-  VALKEY_URL: redis://valkey:6379 # Or set to blank string to disable
-  SECRET_KEY: change_me_to_something_random # best to run openssl rand -hex 32
-  EMAIL_URL: consolemail:// # Example smtp://email:password@smtp_url:port https://glitchtip.com/documentation/install#configuration
+  # Values come from .env next to this file (see .env for docs on each).
+  DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/postgres}
+  VALKEY_URL: ${VALKEY_URL-redis://valkey:6379} # Note the dash, not colon: blank in .env disables Valkey; unset uses default
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env -- openssl rand -hex 32}
+  EMAIL_URL: ${EMAIL_URL:-consolemail://} # https://glitchtip.com/documentation/install#configuration
   # Must be a full URL (scheme required) or settings.py:91 raises
-  # ImproperlyConfigured and the web container crash-loops. Switch to
-  # https://glitchtip.example.com once you have a domain + certificate --
-  # this also auto-enables SESSION_COOKIE_SECURE/CSRF_COOKIE_SECURE.
+  # ImproperlyConfigured and the web container crash-loops.
   GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost}
-  DEFAULT_FROM_EMAIL: email@example.com # Change this to your email
-  ENABLE_ADMIN: "False" # Set to True to enable Django Admin at /admin/
-  ENABLE_OPENAPI: "False" # Set to True to enable OpenAPI spec at /api/docs
-  GLITCHTIP_ENABLE_MCP: "False" # Set to True to enable MCP server
-  GLITCHTIP_ENABLE_DUCKDB: "False" # Set to True to enable cold storage archival
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-email@example.com}
+  ENABLE_ADMIN: ${ENABLE_ADMIN:-False} # Set to True to enable Django Admin at /admin/
+  ENABLE_OPENAPI: ${ENABLE_OPENAPI:-False} # Set to True to enable OpenAPI spec at /api/docs
+  GLITCHTIP_ENABLE_MCP: ${GLITCHTIP_ENABLE_MCP:-False} # Set to True to enable MCP server
+  GLITCHTIP_ENABLE_DUCKDB: ${GLITCHTIP_ENABLE_DUCKDB:-False} # Set to True to enable cold storage archival
   # PORT: 8000 # If changing, change the web service port too
 
   ## To reduce RAM usage (targeting 256-512 MB), consider disabling:
@@ -51,7 +56,7 @@ services:
     depends_on:
       - web
     ports:
-      - "80:80"
+      - "8088:80" # Free on your server (used: 4004, 4005, 1234, 5432, 3308, 6381, 5672, 15672, 8567) -- http://<server>:8088
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
